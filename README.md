@@ -1,6 +1,5 @@
 # Toolkits_for_Nanopore_sequencing_data
 This repo contains Python-based analysis tools for analyzing long-read sequencing data.
----
 
 ## Linked-Mutation Extractor (LiME)
 ## Description
@@ -18,6 +17,6 @@ This algorithm has been utilized in [(Gallardo et al. 2021)](https://academic.ou
 It shows that the 25 SNVs are likely collectively enriched in the same HIV genome instead of being selected separately in different genomes.
 It also indicated that they are likely derived from a founder strain in the drug-naive sample containing the 25 specific SNVs.
 
-![Image](https://github.com/ShiyiWang25/Toolkits_for_Nanopore_sequencing_data/blob/main/Figures/Application.png)
+![Image](https://github.com/ShiyiWang25/Toolkits_for_Nanopore_sequencing_data/blob/main/Figures/Application.png width=100)
 (A) HIV genomes in the virological-failure sample are aligned to the drug-naive consensus sequence and visualized using Integrative Genomics Viewer (IGV). Alignment reveals 25 positions across the HIV gag-pol region where mutations are selected and enriched in the virological-failure sample. Vertical lines in different colors highlight these 25 positions. Additionally, the DRM RT M184V is marked using a black arrowhead. RT: reverse transcriptase. 
 (B) The nucleotide combinations at the 25 gag-pol positions in individual HIV genomes from the drug-naive sample (top) and the virological failure sample (bottom) are shown using waffle plots. In the waffle plots, each square represents one HIV genome. HIV genomes with the same nucleotide combination are colored in the same color, and HIV genomes with distinct nucleotide combinations are colored in different colors. The red arrow indicates a rare nucleotide combination from the drug-naive sample (top) enriched in HIV genomes in the virological failure sample (bottom). DRM: drug resistance mutation. PWH: people living with HIV. ART: antiretroviral therapy. 
