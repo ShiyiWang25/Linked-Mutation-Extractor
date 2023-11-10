@@ -10,26 +10,26 @@ import re
 EOL = '\n'
 
 def SNV(vcf_file):
-	# extract the SNV positions from a VCF file
-	POS_list, QUAL_list, DP_list, DP_threshold = [], [], [], 0
-	motif = re.compile(r'DP=(?P<deepth>[\d]+);')
-	
-	with open(vcf_file, 'r') as f:
-    	for line in f:
-        	if "#" not in line:
-            	POS_list.append(int(line.split("\t")[1]))
-            	QUAL_list.append(float(line.split("\t")[5]))
-            	match = motif.search(line.rstrip().split("\t")[7])
-            	DP_list.append(int(match['deepth']))
-    
-	data = {'POS':POS_list, 'QUAL':QUAL_list, 'DP':DP_list}
-	df = pd.DataFrame(data)
+    # extract the SNV positions from a VCF file
+    POS_list, QUAL_list, DP_list, DP_threshold = [], [], [], 0
+    motif = re.compile(r'DP=(?P<deepth>[\d]+);')
 
-	DP_threshold = 0.75* max(DP_list)
-	df_filtered = df.query('POS>790 & QUAL>100 & DP>@DP_threshold')
-	df_filtered.reset_index(drop=True)
-	return df_filtered['POS'].tolist()
-	
+    with open(vcf_file, 'r') as f:
+        for line in f:
+            if "#" not in line:
+                POS_list.append(int(line.split("\t")[1]))
+                QUAL_list.append(float(line.split("\t")[5]))
+                match = motif.search(line.rstrip().split("\t")[7])
+                DP_list.append(int(match['deepth']))
+    
+    data = {'POS':POS_list, 'QUAL':QUAL_list, 'DP':DP_list}
+    df = pd.DataFrame(data)
+
+    DP_threshold = 0.75* max(DP_list)
+    df_filtered = df.query('QUAL>100 & DP>@DP_threshold')
+    df_filtered.reset_index(drop=True)
+    return df_filtered['POS'].tolist()
+
 # Divide the positions given into small subgroups with 5 or less than 5 positions.
 # ------
 # Parameters:
@@ -41,7 +41,7 @@ def SNV(vcf_file):
 #   contains inner-lists of five positions.
 #   If the last inner-list has only 1 position,
 #   the last two inner-lists will be combined and re-split into 
-#	two inner-lists with 3 positions in each of them.
+#   two inner-lists with 3 positions in each of them.
 def chunking(positions):
     i = 0
     chunks = []
@@ -193,107 +193,96 @@ def nested_dic_item_searching(nested_dictionary, target):
             if target in subgroup_info[key]:
                 pattern = pattern + " " + key
     return(pattern)
-	
+    
 def lime(args):
-	
-	# Read the indexed BAM file as the input.
-	test_dataset = pysam.AlignmentFile(args.i, "rb")
-	
-	# import positions of interest
-	if args.vcf != None:
-		pos_list = SNV(vcf)
-	elif args.txt ! = None:
-		with open(args.txt,'r') as f:
-			pos_list = [int(i) for i in f.readline().rstrip().rsplit(', ')]
-	else:
-		print(f'Error: missing positions of interest.{EOL}')
+    
+    # Read the indexed BAM file as the input.
+    test_dataset = pysam.AlignmentFile(args.i, "rb")
+
+    # import positions of interest
+    if args.vcf != None:
+        pos_list = SNV(vcf)
+    elif args.txt ! = None:
+        with open(args.txt,'r') as f:
+            pos_list = [int(i) for i in f.readline().rstrip().rsplit(', ')]
+    else:
+        print(f'Error: missing positions of interest.{EOL}')
         sys.exit()
         
     # LiME takes at least 2 positions.
-	if len(pos_list) < 2:
-    	sys.exit(f"Error: The number of positions should be bigger than 1.{EOL}")
-    	
+    if len(pos_list) < 2:
+        sys.exit(f"Error: The number of positions should be bigger than 1.{EOL}")
     start_time = time.time() # start timing
     
     chunks = chunking(pos_list)
-	subgroup_read_tree = {}
-	subgroup_info_tree = {}
+    subgroup_read_tree = {}
+    subgroup_info_tree = {}
     
-	for item in chunks:
-    	subgroup_info_tree[str(item)], subgroup_read_tree[str(item)] = (
-        	pattern_generation(pos_nu_reads(test_dataset, item), item)
-        	)
+    for item in chunks:
+        subgroup_info_tree[str(item)], subgroup_read_tree[str(item)] = (
+            pattern_generation(pos_nu_reads(test_dataset, item), item)
+        )
 
-	# get the list of reads shared in all subgroups
-	shared_read = []
-	if len(chunks) > 1:  # skip the loop while only one subgroup exits
-    	chunk_i = 0
-    	shared_read = set(subgroup_read_tree[str(chunks[chunk_i])]) & set(subgroup_read_tree[str(chunks[chunk_i + 1])])
-    	chunk_i = 2
-   		while chunk_i < len(chunks):
-        	shared_read = shared_read & set(subgroup_read_tree[str(chunks[chunk_i])])
-        	chunk_i += 1
-	else:
-    	shared_read = set(subgroup_read_tree[str(chunks[0])])
+    # get the list of reads shared in all subgroups
+    shared_read = []
+    if len(chunks) > 1:  # skip the loop while only one subgroup exits
+        chunk_i = 0
+        shared_read = set(subgroup_read_tree[str(chunks[chunk_i])]) & set(subgroup_read_tree[str(chunks[chunk_i + 1])])
+        chunk_i = 2
+        while chunk_i < len(chunks):
+            shared_read = shared_read & set(subgroup_read_tree[str(chunks[chunk_i])])
+            chunk_i += 1
+    else:
+        shared_read = set(subgroup_read_tree[str(chunks[0])])
 
-	# Form big patterns using information from all subgroups
-	# Generate a dictionary to store the information {unique_big_pattern: reads}
-	pool = []
-	pattern = ""
-	pattern_tree = {}
-	tem_list = []
+    # Form big patterns using information from all subgroups
+    # Generate a dictionary to store the information {unique_big_pattern: reads}
+    pool = []
+    pattern = ""
+    pattern_tree = {}
+    tem_list = []
 
-	for item in shared_read:   # loop the reads with pattern detected
-    	pattern = nested_dic_item_searching(subgroup_info_tree, item)  # get the pattern in the read from the dictionary
-    	if pattern not in pool:  # create a dictionary with all unique pattern as key, reads with specific pattern as value
-        	pool.append(pattern)
-        	pattern_tree[pattern] = item
-    	else:
-        	tem_list.append(pattern_tree[pattern])
-        	tem_list.append(item)
-        	pattern_tree[pattern] = ",".join(tem_list)
-        	tem_list = []
+    for item in shared_read:   # loop the reads with pattern detected
+        pattern = nested_dic_item_searching(subgroup_info_tree, item)  # get the pattern in the read from the dictionary
+        if pattern not in pool:  # create a dictionary with all unique pattern as key, reads with specific pattern as value
+            pool.append(pattern)
+            pattern_tree[pattern] = item
+        else:
+            tem_list.append(pattern_tree[pattern])
+            tem_list.append(item)
+            pattern_tree[pattern] = ",".join(tem_list)
+            tem_list = []
 
 
-	final_pattern_list = []
-	final_read_list = []
-	final_read_number = []
-	for key, value in pattern_tree.items():  # get the columns to form DataFrame
-    	final_pattern_list.append(key)
-    	final_read_list.append(value.split(","))
-    	final_read_number.append(len(value.split(",")))
+    final_pattern_list = []
+    final_read_list = []
+    final_read_number = []
+    for key, value in pattern_tree.items():  # get the columns to form DataFrame
+        final_pattern_list.append(key)
+        final_read_list.append(value.split(","))
+        final_read_number.append(len(value.split(",")))
 
-	data = {'Pattern': final_pattern_list,
-    	    'Read_name': final_read_list,
-        	'Read_number': final_read_number}
-	Pattern_Reads = pd.DataFrame(data, columns=['Pattern', 'Read_name', 'Read_number'])  # form the DataFrame
-	if args.f:
-		Pattern_Reads.to_csv(args.f, index=False)  # output the DataFrame in a CSV file
-	
-	# generate a waffle plot reflecting the pattern diversity in the input reads
-	if args.p:
-		fig = plt.figure(  
-    				FigureClass=Waffle,
-    				columns=60,
-    				values=Pattern_Reads.Read_number,
-    				cmap_name="tab20c"
-					)
+    data = {'Pattern': final_pattern_list,
+            'Read_name': final_read_list,
+            'Read_number': final_read_number}
+    Pattern_Reads = pd.DataFrame(data, columns=['Pattern', 'Read_name', 'Read_number'])  # form the DataFrame
+    if args.f:
+        Pattern_Reads.to_csv(args.f, index=False)  # output the DataFrame in a CSV file
 
-		fig.savefig(args.p, bbox_inches='tight')  
+    # generate a waffle plot reflecting the pattern diversity in the input reads
+    if args.p:
+        fig = plt.figure(  
+            FigureClass=Waffle,
+            columns=60,
+            values=Pattern_Reads.Read_number,
+            cmap_name="tab20c"
+            )
 
-	finish_time = time.time()
-	print(EOL.join([
-					f"Program Finished in {float(finish_time - start_time)} seconds.",
-					f'-------------'
-					])
-		 )
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+        fig.savefig(args.p, bbox_inches='tight')  
+
+    finish_time = time.time()
+    print(EOL.join([
+        f"Program Finished in {float(finish_time - start_time)} seconds.",
+        f'-------------'
+        ])
+         )
