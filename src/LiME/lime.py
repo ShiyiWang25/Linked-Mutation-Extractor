@@ -27,7 +27,7 @@ def SNV(vcf_file):
 
     DP_threshold = 0.75* max(DP_list)
     df_filtered = df.query('QUAL>100 & DP>@DP_threshold')
-    df_filtered.reset_index(drop=True)
+    df_filtered = df_filtered.reset_index(drop=True)
     return df_filtered['POS'].tolist()
 
 # Divide the positions given into small subgroups with 5 or less than 5 positions.
@@ -47,14 +47,14 @@ def chunking(positions):
     chunks = []
     if len(positions) % 5 == 1:
         while i < (len(positions)-6):
-            chunks.append(positions[i: (i + 5)])
+            chunks.append(positions[i:(i + 5)])
             i += 5
         while i < len(positions):
-            chunks.append(positions[i: (i + 3)])
+            chunks.append(positions[i:(i + 3)])
             i += 3
     else:
         while i < len(positions):
-            chunks.append(positions[i: (i + 5)])
+            chunks.append(positions[i:(i + 5)])
             i += 5
     return chunks
 
@@ -130,7 +130,6 @@ def pattern_generation(infotree, positions):
     intersection_tree = {}
 
     o_pattern = []
-    o_len = []
     o_readID = []
 
     while p[i] < 4:
@@ -201,8 +200,8 @@ def lime(args):
 
     # import positions of interest
     if args.vcf != None:
-        pos_list = SNV(vcf)
-    elif args.txt ! = None:
+        pos_list = SNV(args.vcf)
+    elif args.txt != None:
         with open(args.txt,'r') as f:
             pos_list = [int(i) for i in f.readline().rstrip().rsplit(', ')]
     else:
