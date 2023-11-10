@@ -47,16 +47,32 @@ def chunking(positions):
     chunks = []
     if len(positions) % 5 == 1:
         while i < (len(positions)-6):
-            chunks.append(positions[i:(i + 5)])
+            chunks.append(positions[i: (i + 5)])
             i += 5
         while i < len(positions):
-            chunks.append(positions[i:(i + 3)])
+            chunks.append(positions[i: (i + 3)])
             i += 3
     else:
         while i < len(positions):
-            chunks.append(positions[i:(i + 5)])
+            chunks.append(positions[i: (i + 5)])
             i += 5
     return chunks
+
+# Convert set(type) to list(type)
+def set_to_list(set):
+    new_list = []
+    for item in set:
+        new_list += list(item)
+    return new_list
+
+# Match the input positions to the read index in python
+def refined_pos_list(positions):
+    pos_i = 0
+    while pos_i < len(positions):
+        positions[pos_i] -= 1
+        pos_i += 1
+    return positions
+
 
 # Collect the reads with specific nucleotides at each position and store this information in dictionary format.
 # ------
@@ -72,8 +88,12 @@ def chunking(positions):
 #       position + nucleotide
 #   value: list
 #       list of read_ID harboring that "position + nucleotide"
+# ------
+# Notes:
+#   refined_pos_list function is called in this function,
+#   to match the input positions to the read index in pysam.libcalignmentfile.AlignmentFile
 def pos_nu_reads(Reads_input, positions):
-    positions = [i-1 for i in positions]
+    positions = refined_pos_list(positions)
     pos_i = 0
     nu_i = 0
     read_list = []
@@ -116,7 +136,7 @@ def pos_nu_reads(Reads_input, positions):
 #       pattern
 #   value:
 #       ID of all reads with that pattern
-# o_readID: list
+# set_to_list(o_readID): list
 #   list of the ID of all the reads with any pattern detected for the positions of interest
 def pattern_generation(infotree, positions):
     i = 0
@@ -130,6 +150,7 @@ def pattern_generation(infotree, positions):
     intersection_tree = {}
 
     o_pattern = []
+    o_len = []
     o_readID = []
 
     while p[i] < 4:
@@ -161,13 +182,16 @@ def pattern_generation(infotree, positions):
                         break
                 intersection_tree[intersection_name] = intersection  # use the string as key to form a dictionary
                 o_pattern.append(intersection_name)                  # store all the patterns in a list
+#                o_len.append(len(intersection))
                 o_readID.append(intersection)                        # store all the reads in a nested list
                 name_list_i = 0
                 intersection_name = ''
+#               print("\t", name_list, len(intersection))
             p[i] += 1
             while p[i] == 4 and i > 0:
                 i -= 1
-    return intersection_tree, list(o_readID)
+#    print("\n")
+    return intersection_tree, set_to_list(o_readID)
 
 # search for specific item in inner nested-dictionary
 
@@ -204,6 +228,7 @@ def lime(args):
     elif args.txt != None:
         with open(args.txt,'r') as f:
             pos_list = [int(i) for i in f.readline().rstrip().rsplit(', ')]
+            print(f'Positions of interest: {pos_list}')
     else:
         print(f'Error: missing positions of interest.{EOL}')
         sys.exit()
@@ -213,14 +238,15 @@ def lime(args):
         sys.exit(f"Error: The number of positions should be bigger than 1.{EOL}")
     start_time = time.time() # start timing
     
+    # use dictionary to store {subgroup: read list}, named subgroup_read_tree.
+    # use nested dictionary to store {subgroup: {pattern: reads}}, named subgroup_info_tree.
     chunks = chunking(pos_list)
     subgroup_read_tree = {}
     subgroup_info_tree = {}
-    
+
     for item in chunks:
-        subgroup_info_tree[str(item)], subgroup_read_tree[str(item)] = (
+        subgroup_info_tree[str(item)], subgroup_read_tree[str(item)] = \
             pattern_generation(pos_nu_reads(test_dataset, item), item)
-        )
 
     # get the list of reads shared in all subgroups
     shared_read = []
@@ -233,6 +259,7 @@ def lime(args):
             chunk_i += 1
     else:
         shared_read = set(subgroup_read_tree[str(chunks[0])])
+    #print(len(shared_read))
 
     # Form big patterns using information from all subgroups
     # Generate a dictionary to store the information {unique_big_pattern: reads}
@@ -252,7 +279,6 @@ def lime(args):
             pattern_tree[pattern] = ",".join(tem_list)
             tem_list = []
 
-
     final_pattern_list = []
     final_read_list = []
     final_read_number = []
@@ -265,6 +291,7 @@ def lime(args):
             'Read_name': final_read_list,
             'Read_number': final_read_number}
     Pattern_Reads = pd.DataFrame(data, columns=['Pattern', 'Read_name', 'Read_number'])  # form the DataFrame
+    
     if args.f:
         Pattern_Reads.to_csv(args.f, index=False)  # output the DataFrame in a CSV file
 
