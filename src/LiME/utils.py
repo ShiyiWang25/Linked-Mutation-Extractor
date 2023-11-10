@@ -10,6 +10,9 @@ def _parse_args(args, **kwargs):
                          			 'predefined positions'),
                         epilog='')
     
+    parser.add_argument('-i',
+                        type=str,
+                        help='Import a BAM file.')  
     parser.add_argument('--vcf',
                         type=str,
                         help='Provide positions from a VCF file.')  
@@ -19,10 +22,10 @@ def _parse_args(args, **kwargs):
     parser.add_argument('-p',
     					default = None,
                         type=str,
-                        help='define the output path for the waffle plot')
+                        help='Define the output path for the waffle plot')
     parser.add_argument('-f',
     					default = None,
                         type=str,
-                        help='define the output path for the CSV file')
+                        help='Define the output path for the CSV file')
 
     return parser.parse_args(args)
