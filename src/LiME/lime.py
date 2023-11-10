@@ -19,7 +19,7 @@ def SNV(vcf_file):
 
     motif = re.compile(r'DP=(?P<deepth>[\d]+);')
 
-    with open(args.i, 'r') as f:
+    with open(vcf_file, 'r') as f:
         for line in f:
             if "#" not in line:
                 POS_list.append(int(line.split("\t")[1]))
