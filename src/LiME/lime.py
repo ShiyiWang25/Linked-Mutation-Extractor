@@ -11,22 +11,27 @@ EOL = '\n'
 
 def SNV(vcf_file):
     # extract the SNV positions from a VCF file
-    POS_list, QUAL_list, DP_list, DP_threshold = [], [], [], 0
+    
+    POS_list = []
+    QUAL_list = []
+    DP_list = []
+    DP_threshold = 0
+
     motif = re.compile(r'DP=(?P<deepth>[\d]+);')
 
-    with open(vcf_file, 'r') as f:
+    with open(args.i, 'r') as f:
         for line in f:
             if "#" not in line:
                 POS_list.append(int(line.split("\t")[1]))
                 QUAL_list.append(float(line.split("\t")[5]))
                 match = motif.search(line.rstrip().split("\t")[7])
                 DP_list.append(int(match['deepth']))
-    
+
     data = {'POS':POS_list, 'QUAL':QUAL_list, 'DP':DP_list}
     df = pd.DataFrame(data)
 
     DP_threshold = 0.75* max(DP_list)
-    df_filtered = df.query('QUAL>100 & DP>@DP_threshold')
+    df_filtered = df.query('POS>790 & QUAL>100 & DP>@DP_threshold')
     df_filtered = df_filtered.reset_index(drop=True)
     return df_filtered['POS'].tolist()
 
