@@ -1,7 +1,7 @@
 # Toolkits_for_Nanopore_sequencing_data
 This repo contains Python-based analysis tools for analyzing long-read sequencing data.
 
-## Linked-Mutation Extractor (LiME) (Year: 2020-01-2)
+## Linked-Mutation Extractor (LiME) (Year: 2020-01-02)
 ### Description
 This _Python_ algorithm performs concurrent variant calling across multiple loci in aligned sequences and clusters the sequences based on their unique nucleotide combinations (genetic patterns).
 The output is visualized using a Waffle plot, wherein each square represents a sequence, and a cluster of sequences characterized by the same nucleotide combination is colored the same.
